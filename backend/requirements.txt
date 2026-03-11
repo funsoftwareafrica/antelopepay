@@ -3,22 +3,21 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 
-# Production Server (INDISPENSABLE pour Render)
+# Production Server
 gunicorn==21.2.0
 
 # Database
 sqlalchemy==2.0.23
 aiosqlite==0.19.0
-# Pour PostgreSQL (optionnel): asyncpg==0.29.0
 
 # Auth
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.1.1
 
-# Pydantic
-pydantic==2.5.2
-pydantic-settings==2.1.0
+# Pydantic (Versions corrigées pour Render)
+pydantic==2.7.4
+pydantic-settings==2.3.4
 
 # HTTP Client
 httpx==0.25.2
