@@ -18,6 +18,7 @@ bcrypt==4.1.1
 # Pydantic (Versions corrigées pour Render)
 pydantic==2.7.4
 pydantic-settings==2.3.4
+email-validator==2.1.0
 
 # HTTP Client
 httpx==0.25.2
