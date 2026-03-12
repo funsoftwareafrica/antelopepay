@@ -341,11 +341,12 @@ export default function AntelopePayApp() {
   const fetchData = async () => {
     setDataLoading(true);
     try {
-      const [txRes, contactsRes, summaryRes] = await Promise.all([
-        transfersApi.getHistory({ page: 1, page_size: 20 }).catch(() => ({ success: false })),
-        contactsApi.getAll().catch(() => ({ success: false })),
-        analyticsApi.getSummary('month').catch(() => ({ success: false })),
-      ]);
+
+          const [txRes, contactsRes, summaryRes] = await Promise.all([
+          transfersApi.getHistory({ page: 1, page_size: 20 }).catch(() => ({ success: false, data: undefined })),
+          contactsApi.getAll().catch(() => ({ success: false, data: undefined })),
+          analyticsApi.getSummary('month').catch(() => ({ success: false, data: undefined })),
+        ]);
 
       if (txRes.success && txRes.data) setTransactions((txRes.data as { transactions?: Transaction[] }).transactions || []);
       if (contactsRes.success && contactsRes.data) setContacts((contactsRes.data as { contacts?: Contact[] }).contacts || []);
@@ -368,10 +369,10 @@ export default function AntelopePayApp() {
     setAdminLoading(true);
     try {
       const [dashboardRes, usersRes, pendingRes] = await Promise.all([
-        adminApi.getDashboard().catch(() => ({ success: false })),
-        adminApi.getUsers({ page: 1 }).catch(() => ({ success: false })),
-        adminApi.getPendingTransactions().catch(() => ({ success: false })),
-      ]);
+  adminApi.getDashboard().catch(() => ({ success: false, data: undefined })),
+  adminApi.getUsers({ page: 1 }).catch(() => ({ success: false, data: undefined })),
+  adminApi.getPendingTransactions().catch(() => ({ success: false, data: undefined })),
+]);
 
       if (dashboardRes.success && dashboardRes.data) {
         const dashboardData = dashboardRes.data as { stats?: AdminStats };
