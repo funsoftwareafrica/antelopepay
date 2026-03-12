@@ -28,13 +28,12 @@ export interface Contact {
   created_at: string;
 }
 
-interface ApiResponse<T = unknown> {
+// CORRECTION: Interface simple avec data optionnel
+// Cela permet au catch() de page.tsx de fonctionner sans erreur TypeScript
+interface ApiResponse {
   success: boolean;
   message?: string;
   data?: T;
-  transactions?: T[]; // Ajout pour flexibilité
-  contacts?: T[]; // Ajout pour flexibilité
-  total?: number;
 }
 
 // Helper function to get auth header
@@ -82,12 +81,10 @@ export const transfersApi = {
       const response = await fetch(`${API_URL}/transfers?${searchParams.toString()}`, {
         headers: getAuthHeaders(),
       });
-      // On force le type pour satisfaire TypeScript
-      return response.json() as Promise<ApiResponse<{ transactions: Transaction[]; total: number }>>;
+      return response.json();
     } catch (error) {
       console.error('Get history error:', error);
-      // On retourne un objet complet avec data vide pour éviter l'erreur
-      return { success: false, data: { transactions: [], total: 0 } };
+      return { success: false };
     }
   },
 };
@@ -99,10 +96,10 @@ export const contactsApi = {
       const response = await fetch(`${API_URL}/contacts`, {
         headers: getAuthHeaders(),
       });
-      return response.json() as Promise<ApiResponse<{ contacts: Contact[] }>>;
+      return response.json();
     } catch (error) {
       console.error('Get contacts error:', error);
-      return { success: false, data: { contacts: [] } };
+      return { success: false };
     }
   },
 
@@ -193,14 +190,10 @@ export const analyticsApi = {
       const response = await fetch(`${API_URL}/analytics?period=${period}`, {
         headers: getAuthHeaders(),
       });
-      return response.json() as Promise<ApiResponse<{
-        income: number;
-        expenses: number;
-        breakdown: Array<{ category: string; amount: number; percentage: number }>;
-      }>>;
+      return response.json();
     } catch (error) {
       console.error('Analytics error:', error);
-      return { success: false, data: { income: 0, expenses: 0, breakdown: [] } };
+      return { success: false };
     }
   },
 };
@@ -212,10 +205,10 @@ export const walletApi = {
       const response = await fetch(`${API_URL}/wallet/balance`, {
         headers: getAuthHeaders(),
       });
-      return response.json() as Promise<ApiResponse<{ balance: number; savings: number; currency: string }>>;
+      return response.json();
     } catch (error) {
       console.error('Get balance error:', error);
-      return { success: false, data: { balance: 0, savings: 0, currency: 'XOF' } };
+      return { success: false };
     }
   },
 
@@ -285,10 +278,10 @@ export const walletApi = {
       const response = await fetch(`${API_URL}/wallet/transactions?${searchParams.toString()}`, {
         headers: getAuthHeaders(),
       });
-      return response.json() as Promise<ApiResponse<{ data: Transaction[]; total: number }>>;
+      return response.json();
     } catch (error) {
       console.error('Get wallet transactions error:', error);
-      return { success: false, data: { data: [], total: 0 } };
+      return { success: false };
     }
   },
 };
