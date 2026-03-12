@@ -28,9 +28,7 @@ export interface Contact {
   created_at: string;
 }
 
-// CORRECTION: Interface simple avec data optionnel
-// Cela permet au catch() de page.tsx de fonctionner sans erreur TypeScript
-interface ApiResponse {
+interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
