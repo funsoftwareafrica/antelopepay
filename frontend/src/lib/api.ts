@@ -32,6 +32,9 @@ interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
+  transactions?: T[]; // Ajout pour flexibilité
+  contacts?: T[]; // Ajout pour flexibilité
+  total?: number;
 }
 
 // Helper function to get auth header
@@ -79,10 +82,12 @@ export const transfersApi = {
       const response = await fetch(`${API_URL}/transfers?${searchParams.toString()}`, {
         headers: getAuthHeaders(),
       });
-      return response.json();
+      // On force le type pour satisfaire TypeScript
+      return response.json() as Promise<ApiResponse<{ transactions: Transaction[]; total: number }>>;
     } catch (error) {
       console.error('Get history error:', error);
-      return { success: false };
+      // On retourne un objet complet avec data vide pour éviter l'erreur
+      return { success: false, data: { transactions: [], total: 0 } };
     }
   },
 };
@@ -94,10 +99,10 @@ export const contactsApi = {
       const response = await fetch(`${API_URL}/contacts`, {
         headers: getAuthHeaders(),
       });
-      return response.json();
+      return response.json() as Promise<ApiResponse<{ contacts: Contact[] }>>;
     } catch (error) {
       console.error('Get contacts error:', error);
-      return { success: false };
+      return { success: false, data: { contacts: [] } };
     }
   },
 
@@ -188,10 +193,14 @@ export const analyticsApi = {
       const response = await fetch(`${API_URL}/analytics?period=${period}`, {
         headers: getAuthHeaders(),
       });
-      return response.json();
+      return response.json() as Promise<ApiResponse<{
+        income: number;
+        expenses: number;
+        breakdown: Array<{ category: string; amount: number; percentage: number }>;
+      }>>;
     } catch (error) {
       console.error('Analytics error:', error);
-      return { success: false };
+      return { success: false, data: { income: 0, expenses: 0, breakdown: [] } };
     }
   },
 };
@@ -203,10 +212,10 @@ export const walletApi = {
       const response = await fetch(`${API_URL}/wallet/balance`, {
         headers: getAuthHeaders(),
       });
-      return response.json();
+      return response.json() as Promise<ApiResponse<{ balance: number; savings: number; currency: string }>>;
     } catch (error) {
       console.error('Get balance error:', error);
-      return { success: false };
+      return { success: false, data: { balance: 0, savings: 0, currency: 'XOF' } };
     }
   },
 
@@ -276,10 +285,10 @@ export const walletApi = {
       const response = await fetch(`${API_URL}/wallet/transactions?${searchParams.toString()}`, {
         headers: getAuthHeaders(),
       });
-      return response.json();
+      return response.json() as Promise<ApiResponse<{ data: Transaction[]; total: number }>>;
     } catch (error) {
       console.error('Get wallet transactions error:', error);
-      return { success: false };
+      return { success: false, data: { data: [], total: 0 } };
     }
   },
 };
