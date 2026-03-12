@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, LineChart, Line } from 'recharts';
 import { toast, Toaster } from 'sonner';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { transfersApi, contactsApi, analyticsApi, servicesApi, adminApi, walletApi, Transaction, Contact } from '@/lib/api';
 
@@ -156,14 +157,7 @@ export default function AntelopePayApp() {
     );
   }, []);
 
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => { window.removeEventListener('online', handleOnline); window.removeEventListener('offline', handleOffline); };
-  }, []);
-
+  useEffect(() => { const handleOnline = () => setIsOnline(true); const handleOffline = () => setIsOnline(false); window.addEventListener('online', handleOnline); window.addEventListener('offline', handleOffline); return () => { window.removeEventListener('online', handleOnline); window.removeEventListener('offline', handleOffline); }; }, []);
   useEffect(() => { if (settings.darkMode) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark'); } }, [settings.darkMode]);
   useEffect(() => { if (isAuthenticated) { setCurrentView(isAdmin ? 'admin' : 'dashboard'); fetchData(); } }, [isAuthenticated]);
   useEffect(() => { const amount = parseFloat(transferAmount || '0'); if (amount > 0) { const fee = amount * 0.015; setTransferFee(Math.max(50, Math.min(2500, fee))); } else { setTransferFee(0); } }, [transferAmount]);
@@ -271,7 +265,6 @@ export default function AntelopePayApp() {
 
   if (authLoading) { return (<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50"><div className="text-center"><AntelopeLogo className="w-20 h-20 mx-auto animate-pulse" /><p className="mt-4 text-amber-600 font-medium">Chargement...</p></div></div>); }
 
-  // Render functions remain same
   const renderHeader = () => (
     <motion.header initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-amber-100 shadow-sm">
       <div className="container mx-auto px-4 py-3">
@@ -383,7 +376,13 @@ export default function AntelopePayApp() {
   };
 
   const renderAccount = () => (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50">{renderSidebar()}<main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6"><div className="max-w-2xl mx-auto space-y-6"><h1 className="text-2xl font-bold text-slate-900 font-serif">Mon Compte</h1><Card><CardContent className="p-6"><div className="flex items-center gap-4"><Avatar className="h-20 w-20"><AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-500 text-white text-2xl">{user?.full_name?.split(' ').map(n => n[0]).join('') || 'AP'}</AvatarFallback></Avatar><div><h2 className="text-xl font-bold text-slate-900">{user?.full_name || 'Utilisateur'}</h2><p className="text-slate-500">{user?.email || user?.phone}</p>{user?.is_verified ? (<Badge className="mt-2 bg-emerald-100 text-emerald-700"><Check className="w-3 h-3 mr-1" /> Vérifié</Badge>) : (<Badge className="mt-2 bg-amber-100 text-amber-700">Non vérifié</Badge>)}</div></div></CardContent></Card><Card><CardHeader><CardTitle>Informations personnelles</CardTitle></CardHeader><CardContent className="space-y-4"><div className="flex justify-between py-2 border-b"><span className="text-slate-500">Téléphone</span><span className="font-medium">{user?.phone}</span></div><div className="flex justify-between py-2 border-b"><span className="text-slate-500">Email</span><span className="font-medium">{user?.email || '-'}</span></div><div className="flex justify-between py-2 border-b"><span className="text-slate-500">Pays</span><span className="font-medium">{user?.country || '-'}</span></div><div className="flex justify-between py-2"><span className="text-slate-500">Membre depuis</span><span className="font-medium">{user?.createdAt ? formatDate(user.createdAt) : '-'}</span></div></CardContent></Card></div></main></div>
+    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50">{renderSidebar()}<main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6"><div className="max-w-2xl mx-auto space-y-6"><h1 className="text-2xl font-bold text-slate-900 font-serif">Mon Compte</h1><Card><CardContent className="p-6"><div className="flex items-center gap-4"><Avatar className="h-20 w-20"><AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-500 text-white text-2xl">{user?.full_name?.split(' ').map(n => n[0]).join('') || 'AP'}</AvatarFallback></Avatar><div><h2 className="text-xl font-bold text-slate-900">{user?.full_name || 'Utilisateur'}</h2><p className="text-slate-500">{user?.email || user?.phone}</p>
+                  {/* FIX: is_verified au lieu de isVerified */}
+                  {user?.is_verified ? (<Badge className="mt-2 bg-emerald-100 text-emerald-700"><Check className="w-3 h-3 mr-1" /> Vérifié</Badge>) : (<Badge className="mt-2 bg-amber-100 text-amber-700">Non vérifié</Badge>)}
+                </div></div></CardContent></Card><Card><CardHeader><CardTitle>Informations personnelles</CardTitle></CardHeader><CardContent className="space-y-4"><div className="flex justify-between py-2 border-b"><span className="text-slate-500">Téléphone</span><span className="font-medium">{user?.phone}</span></div><div className="flex justify-between py-2 border-b"><span className="text-slate-500">Email</span><span className="font-medium">{user?.email || '-'}</span></div><div className="flex justify-between py-2 border-b"><span className="text-slate-500">Pays</span><span className="font-medium">{user?.country || '-'}</span></div>
+              {/* FIX: created_at au lieu de createdAt */}
+              <div className="flex justify-between py-2"><span className="text-slate-500">Membre depuis</span><span className="font-medium">{user?.created_at ? formatDate(user.created_at) : '-'}</span></div>
+            </CardContent></Card></div></main></div>
   );
 
   const renderSettings = () => (
