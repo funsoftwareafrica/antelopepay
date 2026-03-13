@@ -1,86 +1,127 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
 
-interface User {
+// Configuration de l'URL de l'API
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
+// User interface
+export interface User {
   id: string;
   phone: string;
-  full_name: string | null;
   email: string | null;
+  full_name: string | null;
+  country: string | null;
   balance: number;
   savings: number;
-  country: string | null;
-  role: string;
   is_verified: boolean;
+  is_active?: boolean;
+  avatar_url?: string | null;
   created_at: string;
+  role?: string;
 }
 
-interface AuthContextType {
+// Auth state interface
+interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (phone: string, password: string) => Promise<boolean>;
-  register: (data: { phone: string; password: string; full_name?: string; email?: string; country?: string }) => Promise<{ success: boolean; message: string }>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  error: string | null;
 }
 
+// Auth context interface
+interface AuthContextType extends AuthState {
+  login: (phone: string, password: string) => Promise<boolean>;
+  register: (data: {
+    phone: string;
+    password: string;
+    full_name?: string;
+    email?: string;
+    country?: string;
+    pin?: string;
+  }) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  clearError: () => void;
+}
+
+// Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+// Helper to get auth header (FIXED: Explicit return type for TypeScript)
+const getAuthHeader = (): Record<string, string> => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
 
+// Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+    error: null,
+  });
 
-  const getAuthHeader = useCallback(() => {
-    if (typeof window === 'undefined') return {};
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+  // Check if user is authenticated on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+          return;
+        }
+
+        // FIX: Explicitly type headers to satisfy TypeScript strict mode
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        };
+
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: headers,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data?.user) {
+            setState({
+              user: data.data.user,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+            return;
+          }
+        }
+        
+        // If token invalid, clear it
+        localStorage.removeItem('access_token');
+        setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        localStorage.removeItem('access_token');
+        setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        });
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  const fetchUser = useCallback(async () => {
-    try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(),
-      };
+  // Login function
+  const login = useCallback(async (phone: string, password: string): Promise<boolean> => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      const response = await fetch(`${API_URL}/auth/me`, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data);
-        return true;
-      } else {
-        localStorage.removeItem('token');
-        setUser(null);
-        return false;
-      }
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      setUser(null);
-      return false;
-    }
-  }, [getAuthHeader]);
-
-  useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        await fetchUser();
-      }
-      setIsLoading(false);
-    };
-    initAuth();
-  }, [fetchUser]);
-
-  const login = async (phone: string, password: string): Promise<boolean> => {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
@@ -88,20 +129,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ phone, password }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.access_token);
-        setUser(data.user);
+      const data = await response.json();
+
+      if (data.success && data.data?.user) {
+        // IMPORTANT: Sauvegarder le token pour les futures requêtes
+        if (data.data.access_token) {
+          localStorage.setItem('access_token', data.data.access_token);
+        }
+
+        setState({
+          user: data.data.user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
         return true;
       }
+
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: data.message || 'Échec de la connexion',
+      }));
       return false;
     } catch (error) {
-      console.error('Login failed:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Une erreur est survenue',
+      }));
       return false;
     }
-  };
+  }, []);
 
-  const register = async (data: { phone: string; password: string; full_name?: string; email?: string; country?: string }): Promise<{ success: boolean; message: string }> => {
+  // Register function
+  const register = useCallback(async (data: {
+    phone: string;
+    password: string;
+    full_name?: string;
+    email?: string;
+    country?: string;
+    pin?: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
@@ -111,34 +182,111 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const result = await response.json();
 
-      if (response.ok) {
-        return { success: true, message: 'Compte créé' };
+      if (result.success && result.data?.user) {
+        // IMPORTANT: Sauvegarder le token
+        if (result.data.access_token) {
+          localStorage.setItem('access_token', result.data.access_token);
+        }
+
+        setState({
+          user: result.data.user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        return {
+          success: true,
+          message: result.message || 'Compte créé avec succès',
+        };
       }
-      return { success: false, message: result.detail || 'Erreur lors de l\'inscription' };
+
+      setState(prev => ({ ...prev, isLoading: false }));
+      return {
+        success: false,
+        message: result.message || 'Échec de l\'inscription',
+      };
     } catch (error) {
-      console.error('Registration failed:', error);
-      return { success: false, message: 'Erreur réseau' };
+      setState(prev => ({ ...prev, isLoading: false }));
+      return {
+        success: false,
+        message: 'Une erreur est survenue',
+      };
     }
-  };
+  }, []);
 
-  const logout = async () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    router.push('/');
-  };
+  // Logout function
+  const logout = useCallback(async () => {
+    try {
+      // FIX: Explicitly type headers
+      const headers: Record<string, string> = {
+        ...getAuthHeader(),
+      };
+      
+      await fetch(`${API_URL}/auth/logout`, { 
+        method: 'POST',
+        headers: headers,
+      });
+    } catch (error) {
+      // Silent fail
+    }
+    // Supprimer le token local
+    localStorage.removeItem('access_token');
+    setState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+    });
+  }, []);
 
+  // Refresh user data
   const refreshUser = useCallback(async () => {
-    await fetchUser();
-  }, [fetchUser]);
+    if (!state.isAuthenticated) return;
 
-  return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout, refreshUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    try {
+      // FIX: Explicitly type headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      };
+
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: headers,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data?.user) {
+          setState(prev => ({
+            ...prev,
+            user: data.data.user,
+          }));
+        }
+      }
+    } catch (error) {
+      // Silent fail
+    }
+  }, [state.isAuthenticated]);
+
+  // Clear error
+  const clearError = useCallback(() => {
+    setState(prev => ({ ...prev, error: null }));
+  }, []);
+
+  const value: AuthContextType = {
+    ...state,
+    login,
+    register,
+    logout,
+    refreshUser,
+    clearError,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+// Hook to use auth context
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
