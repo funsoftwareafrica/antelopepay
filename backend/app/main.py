@@ -14,9 +14,17 @@ app = FastAPI(
 )
 
 # Configuration CORS
+# On définit une liste claire des origines autorisées
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",      # Pour le dev local avec Vite
+    "https://antelopepay.vercel.app", # L'URL de votre frontend sur Vercel
+    settings.FRONTEND_URL        # L'URL configurée dans les variables d'environnement (si différente)
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", settings.FRONTEND_URL],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
